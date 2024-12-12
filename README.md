@@ -1,4 +1,4 @@
-# Homebridge Plugin for Mohuan LED
+# Homebridge Plugin for Keepsmile LED
 
 Install: `npm install @sorae42/homebridge-mohuan-ble`
 
