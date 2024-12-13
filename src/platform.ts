@@ -48,55 +48,43 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
 discoverDevices() {
   noble.on('stateChange', async (state) => {
     if (state === 'poweredOn') {
-      this.log.info('Bluetooth powered on, starting to scan for all devices...');
-      // Start scanning for all devices, set allowDuplicates to true
-      await noble.startScanningAsync([], true);
-    } else {
-      this.log.error('Bluetooth is not powered on.');
+      await noble.startScanningAsync([], false);  // Scan for all BLE devices
     }
   });
 
   noble.on('discover', async (peripheral) => {
-    // Log discovered device details
-    this.log.debug(`Discovered device: Name: ${peripheral.advertisement.localName}, UUID: ${peripheral.uuid}`);
-    this.log.debug(`Advertisement: ${JSON.stringify(peripheral.advertisement)}`);
+    // Optional: You can add filters based on advertisement data, if needed
+    // if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes("KS03")) {
     
-    // Check if the peripheral is advertising the desired service (e.g., the service UUID for your LED strips)
-    const serviceUUIDs = ['0000afd0-0000-1000-8000-00805f9b34fb'];  // Example service UUID
-    const matchesService = peripheral.advertisement.serviceUuids.some((serviceUUID) =>
-      serviceUUIDs.includes(serviceUUID)
+    this.log.debug(`Discovered peripheral: ${peripheral.advertisement.localName} - ${peripheral.uuid}`);
+
+    // Generate an accessory UUID (using peripheral info to ensure uniqueness)
+    const uuid = this.api.hap.uuid.generate(peripheral.uuid);
+    const existingAccessory = this.accessories.find(
+      (accessory) => accessory.UUID === uuid
     );
 
-    if (matchesService) {
-      this.log.success(`Found a matching device with service UUID: ${peripheral.uuid}`);
+    if (existingAccessory) {
+      this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName}`);
+      new ExamplePlatformAccessory(this, existingAccessory);
+    } else {
+      this.log.info(`Adding new accessory: ${peripheral.advertisement.localName}`);
+      const accessory = new this.api.platformAccessory(
+        peripheral.advertisement.localName || 'BLE Light',
+        uuid
+      );
 
-      // Stop scanning once the device is found (optional)
-      await noble.stopScanningAsync();
+      accessory.context.device = {
+        uuid: peripheral.uuid,
+        name: peripheral.advertisement.localName,
+      };
 
-      // Generate UUID for the accessory using the peripheral's local name
-      const uuid = this.api.hap.uuid.generate(peripheral.advertisement.localName || 'Unknown Device');
-      const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
-
-      if (existingAccessory) {
-        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-        new ExamplePlatformAccessory(this, existingAccessory);
-      } else {
-        this.log.info('Setting up new accessory...');
-        const accessoryName = peripheral.advertisement.localName || 'Light Strip'; // Use the name broadcast by the device
-        const accessory = new this.api.platformAccessory(accessoryName, uuid);
-        accessory.context.device = {
-          hkid: uuid,
-          uuid: peripheral.uuid,
-          name: peripheral.advertisement.localName,
-        };
-        new ExamplePlatformAccessory(this, accessory);
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-        this.log.debug('Accessory registration successful!');
-      }
-
-      // Once done, disconnect the peripheral
-      await peripheral.disconnectAsync();
+      new ExamplePlatformAccessory(this, accessory);
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      this.log.debug('Accessory added successfully!');
     }
+
+    peripheral.disconnectAsync();
   });
 }
 
