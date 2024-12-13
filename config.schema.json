@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "Homebridge MohuanLED BLE",
+  "pluginAlias": "Homebridge Keepsmile BLE",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -8,7 +8,7 @@
       "name": {
         "title": "Platform Name",
         "type": "string",
-        "default": "MohuanLED BLE"
+        "default": "Keepsmile BLE"
       },
       "devicename": {
         "title": "Accessory Name",
