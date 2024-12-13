@@ -1,7 +1,7 @@
 {
   "pluginAlias": "Homebridge Keepsmile BLE",
   "pluginType": "platform",
-  "singular": true,
+  "singular": false,
   "schema": {
     "type": "object",
     "properties": {
@@ -10,16 +10,57 @@
         "type": "string",
         "default": "Keepsmile BLE"
       },
-      "devicename": {
-        "title": "Accessory Name",
-        "type": "string",
-        "required": true,
-        "default": "Light Strip"
-      },
-      "bluetoothuuid": {
-        "title": "Bluetooth UUID",
-        "type": "string",
-        "required": false   // This can now be optional, based on your discovery flow
+      "devices": {
+        "title": "Devices",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "devicename": {
+              "title": "Device Name",
+              "type": "string",
+              "default": "Light Strip"
+            },
+            "bluetoothuuid": {
+              "title": "Bluetooth UUID",
+              "type": "string",
+              "required": false,
+              "description": "UUID of the Bluetooth device, optional if device is discovered automatically."
+            },
+            "on": {
+              "title": "Power State",
+              "type": "boolean",
+              "default": true,
+              "description": "Set the default on/off state for the device when Homebridge starts."
+            },
+            "brightness": {
+              "title": "Brightness",
+              "type": "integer",
+              "default": 100,
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Set the default brightness of the light (0-100)."
+            },
+            "hue": {
+              "title": "Hue",
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 360,
+              "description": "Set the default hue (0-360)."
+            },
+            "saturation": {
+              "title": "Saturation",
+              "type": "integer",
+              "default": 0,
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Set the default saturation (0-100)."
+            }
+          },
+          "required": ["devicename"]
+        },
+        "description": "List of devices to be controlled by Homebridge. If no bluetoothuuid is provided, devices will be discovered automatically."
       }
     }
   }
