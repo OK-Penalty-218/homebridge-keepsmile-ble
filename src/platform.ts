@@ -62,7 +62,6 @@ discoverDevices() {
     this.log.debug(`Advertisement: ${JSON.stringify(peripheral.advertisement)}`);
     
     // Check if the peripheral is advertising the desired service (e.g., the service UUID for your LED strips)
-    // You can add more logic to match specific characteristics or service UUIDs
     const serviceUUIDs = ['0000afd0-0000-1000-8000-00805f9b34fb'];  // Example service UUID
     const matchesService = peripheral.advertisement.serviceUuids.some((serviceUUID) =>
       serviceUUIDs.includes(serviceUUID)
@@ -74,7 +73,7 @@ discoverDevices() {
       // Stop scanning once the device is found (optional)
       await noble.stopScanningAsync();
 
-      // Generate UUID for the accessory
+      // Generate UUID for the accessory using the peripheral's local name
       const uuid = this.api.hap.uuid.generate(peripheral.advertisement.localName || 'Unknown Device');
       const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
 
@@ -83,7 +82,8 @@ discoverDevices() {
         new ExamplePlatformAccessory(this, existingAccessory);
       } else {
         this.log.info('Setting up new accessory...');
-        const accessory = new this.api.platformAccessory(peripheral.advertisement.localName || 'Light Strip', uuid);
+        const accessoryName = peripheral.advertisement.localName || 'Light Strip'; // Use the name broadcast by the device
+        const accessory = new this.api.platformAccessory(accessoryName, uuid);
         accessory.context.device = {
           hkid: uuid,
           uuid: peripheral.uuid,
