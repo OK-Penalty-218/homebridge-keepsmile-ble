@@ -45,72 +45,88 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  discoverDevices() {
-    noble.on('stateChange', async (state) => {
-      if (state === 'poweredOn') {
-        await noble.startScanningAsync([], false);
-        this.log.info('Started scanning for Bluetooth devices...');
-      }
-    });
-
-    noble.on('discover', async (peripheral) => {
-      this.log.debug(`Discovered peripheral: ${peripheral.advertisement.localName} UUID: ${peripheral.uuid}`);
-      this.log.debug('Advertisement:', peripheral.advertisement);
-
-      // Check if the peripheral matches the UUID from config
-      if (peripheral.uuid === this.config['bluetoothuuid']) {
-        await noble.stopScanningAsync();
-        this.log.success(`Found target device: ${peripheral.advertisement.localName} with UUID: ${peripheral.uuid}`);
-
-        const uuid = this.api.hap.uuid.generate(peripheral.advertisement.localName || 'MOHUANLED404');
-        const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
-
-        if (existingAccessory) {
-          this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-          new ExamplePlatformAccessory(this, existingAccessory);
-        } else {
-          this.log.info('Setting up new accessory:', peripheral.advertisement.localName);
-          const accessory = new this.api.platformAccessory(peripheral.advertisement.localName || 'Light Strip', uuid);
-
-          accessory.context.device = {
-            hkid: uuid,
-            uuid: peripheral.uuid,
-            name: peripheral.advertisement.localName,
-          };
-
-          new ExamplePlatformAccessory(this, accessory);
-          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-
-          this.log.debug('Accessory registration successful!');
-        }
-
-        this.connected = true;
-        await peripheral.disconnectAsync();
-      }
-    });
-  }
-
-  async connectAndGetWriteCharacteristics() {
-    if (!this.peripheral) {
-      await noble.startScanningAsync();
-      return;
+discoverDevices() {
+  noble.on('stateChange', async (state) => {
+    if (state === 'poweredOn') {
+      this.log.info('Bluetooth powered on, starting to scan for all devices...');
+      // Start scanning for all devices, set allowDuplicates to true
+      await noble.startScanningAsync([], true);
+    } else {
+      this.log.error('Bluetooth is not powered on.');
     }
-    await this.peripheral.connectAsync();
-    this.connected = true;
-    const { characteristics } =
-      await this.peripheral.discoverSomeServicesAndCharacteristicsAsync(
-        [SERVICE_UUID], // Use the defined service UUID
-        [CHARACTERISTIC_READ_UUID, CHARACTERISTIC_WRITE_UUID, CHARACTERISTIC_NOTIFY_UUID] // Characteristics for read, write, and notify
-      );
-      
-    this.characteristic = characteristics.find(
-      (characteristic) => characteristic.uuid === CHARACTERISTIC_WRITE_UUID
+  });
+
+  noble.on('discover', async (peripheral) => {
+    // Log discovered device details
+    this.log.debug(`Discovered device: Name: ${peripheral.advertisement.localName}, UUID: ${peripheral.uuid}`);
+    this.log.debug(`Advertisement: ${JSON.stringify(peripheral.advertisement)}`);
+    
+    // Check if the peripheral is advertising the desired service (e.g., the service UUID for your LED strips)
+    // You can add more logic to match specific characteristics or service UUIDs
+    const serviceUUIDs = ['0000afd0-0000-1000-8000-00805f9b34fb'];  // Example service UUID
+    const matchesService = peripheral.advertisement.serviceUuids.some((serviceUUID) =>
+      serviceUUIDs.includes(serviceUUID)
     );
 
-    if (!this.characteristic) {
-      this.platform.log.error('Could not find the write characteristic!');
-      return;
+    if (matchesService) {
+      this.log.success(`Found a matching device with service UUID: ${peripheral.uuid}`);
+
+      // Stop scanning once the device is found (optional)
+      await noble.stopScanningAsync();
+
+      // Generate UUID for the accessory
+      const uuid = this.api.hap.uuid.generate(peripheral.advertisement.localName || 'Unknown Device');
+      const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+      if (existingAccessory) {
+        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+        new ExamplePlatformAccessory(this, existingAccessory);
+      } else {
+        this.log.info('Setting up new accessory...');
+        const accessory = new this.api.platformAccessory(peripheral.advertisement.localName || 'Light Strip', uuid);
+        accessory.context.device = {
+          hkid: uuid,
+          uuid: peripheral.uuid,
+          name: peripheral.advertisement.localName,
+        };
+        new ExamplePlatformAccessory(this, accessory);
+        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        this.log.debug('Accessory registration successful!');
+      }
+
+      // Once done, disconnect the peripheral
+      await peripheral.disconnectAsync();
     }
+  });
+}
+
+async connectAndInteractWithDevice(peripheral: Peripheral) {
+  await peripheral.connectAsync();
+  
+  this.log.info(`Connected to device: ${peripheral.advertisement.localName}`);
+
+  // Discover services and characteristics
+  const { characteristics } = await peripheral.discoverSomeServicesAndCharacteristicsAsync(
+    ['0000afd0-0000-1000-8000-00805f9b34fb'], // service UUID
+    ['0000afd1-0000-1000-8000-00805f9b34fb'], // write characteristic UUID
+  );
+
+  const writeCharacteristic = characteristics.find((char) => char.uuid === '0000afd1-0000-1000-8000-00805f9b34fb');
+
+  if (writeCharacteristic) {
+    this.log.info('Found write characteristic, interacting with device...');
+
+    // Send data to the device (example)
+    const data = Buffer.from('010203040506', 'hex');
+    await writeCharacteristic.writeAsync(data);
+    this.log.info('Sent data to device.');
+  } else {
+    this.log.error('Write characteristic not found.');
+  }
+
+  // Disconnect after interaction
+  await peripheral.disconnectAsync();
+}
 
     this.platform.log.debug('GetWriteCharacteristics OK!');
   }
