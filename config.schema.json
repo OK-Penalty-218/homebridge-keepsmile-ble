@@ -13,13 +13,13 @@
       "devicename": {
         "title": "Accessory Name",
         "type": "string",
+        "required": true,
         "default": "Light Strip"
       },
       "bluetoothuuid": {
-        "title": "Bluetooth UUID (Optional)",
+        "title": "Bluetooth UUID",
         "type": "string",
-        "default": "",
-        "description": "Leave empty for automatic discovery."
+        "required": false   // This can now be optional, based on your discovery flow
       }
     }
   }
