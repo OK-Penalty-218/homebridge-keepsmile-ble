@@ -1,122 +1,252 @@
-const noble = require('@abandonware/noble'); // For BLE communication with LED device
-const { Accessory, Service, Characteristic } = require('homebridge');
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
-const SERVICE_UUID = '0000afd0-0000-1000-8000-00805f9b34fb';
-const CHARACTERISTIC_WRITE_UUID = '0000afd1-0000-1000-8000-00805f9b34fb';
-const LIGHTS_ON_STRING = "5BF000B5";
-const LIGHTS_OFF_STRING = "5B0F00B5";
-const CHARACTERISTIC_READ_UUID = "0000afd3-0000-1000-8000-00805f9b34fb";
+import { ExampleHomebridgePlatform } from './platform.js';
+import noble, { Characteristic, Peripheral } from '@abandonware/noble';
+import { hsvToRgb } from './util.js';
 
-module.exports = (homebridge) => {
-  homebridge.registerAccessory('homebridge-led-light', 'LedLight', LedLightAccessory);
-};
+/**
+ * Platform Accessory
+ * An instance of this class is created for each accessory your platform registers
+ * Each accessory may expose multiple services of different service types.
+ */
+export class ExamplePlatformAccessory {
+  private service: Service;
 
-class LedLightAccessory {
-  constructor(log, config, api) {
-    this.log = log;
-    this.config = config;
-    this.api = api;
-    this.name = config.name || 'LED Light';
+  /**
+   * These are just used to create a working example
+   * You should implement your own code to track the state of your accessory
+   */
+  private states = {
+    // state
+    On: false,
+    Brightness: 100,
 
-    this.powerState = false; // Light is off initially
-    this.brightness = 100;  // Default brightness
+    // colors!
+    Hue: 0,
+    Saturation: 0,
+  };
 
-    this.characteristicWriteUUID = CHARACTERISTIC_WRITE_UUID;
-    this.service = new Service.Lightbulb(this.name);
+  private peripheral?: Peripheral;
+  private characteristic?: Characteristic;
+  private connected?: boolean = false;
 
-    // Register the "On" characteristic (turn on/off)
-    this.service.getCharacteristic(Characteristic.On)
-      .on('set', this.setPowerState.bind(this));
+  private disconnectTimer?: NodeJS.Timeout;
 
-    // Register the "Brightness" characteristic
-    this.service.getCharacteristic(Characteristic.Brightness)
-      .on('set', this.setBrightness.bind(this));
+  constructor(
+    private readonly platform: ExampleHomebridgePlatform,
+    private readonly accessory: PlatformAccessory,
+  ) {
+    // set accessory information
+    this.accessory
+      .getService(this.platform.Service.AccessoryInformation)!
+      .setCharacteristic(
+        this.platform.Characteristic.Manufacturer,
+        'Welpur, Kimoji LLC.',
+      )
+      .setCharacteristic(this.platform.Characteristic.Model, '5050RGBLED')
+      .setCharacteristic(
+        this.platform.Characteristic.SerialNumber,
+        'CNLEDNOSERIALLOL',
+      );
 
-    // Register the "Color" characteristic (color change, e.g., RGB)
-    this.service.addCharacteristic(new Characteristic.Hue())
-      .on('set', this.setColor.bind(this));
+    // get the LightBulb service if it exists, otherwise create a new LightBulb service
+    // you can create multiple services for each accessory
+    this.service =
+      this.accessory.getService(this.platform.Service.Lightbulb) ||
+      this.accessory.addService(this.platform.Service.Lightbulb);
 
-    this.device = null;
-    this.connectDevice();
-  }
+    // set the service name, this is what is displayed as the default name on the Home app
+    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
+    this.service.setCharacteristic(
+      this.platform.Characteristic.Name,
+      accessory.context.device.name,
+    );
 
-  async connectDevice() {
+    // each service must implement at-minimum the "required characteristics" for the given service type
+    // see https://developers.homebridge.io/#/service/Lightbulb
+
+    // register handlers for the On/Off Characteristic
+    this.service
+      .getCharacteristic(this.platform.Characteristic.On)
+      .onSet(this.setOn.bind(this))
+      .onGet(this.getOn.bind(this));
+
+    // register handlers for the Brightness Characteristic
+    this.service
+      .getCharacteristic(this.platform.Characteristic.Brightness)
+      .onSet(this.setBrightness.bind(this));
+
+    this.service
+      .getCharacteristic(this.platform.Characteristic.Hue)
+      .onSet(this.setHue.bind(this));
+
+    this.service
+      .getCharacteristic(this.platform.Characteristic.Saturation)
+      .onSet(this.setSaturation.bind(this));
+
+    // Re-Setup bluetooth
     noble.on('stateChange', async (state) => {
       if (state === 'poweredOn') {
-        noble.startScanning([], false);
+        await noble.startScanningAsync([], false);
       }
     });
 
-    noble.on('discover', (peripheral) => {
-      if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes('KS03')) {
-        this.log('Found LED device:', peripheral.advertisement.localName);
-        this.device = peripheral;
-        noble.stopScanning();
-        this.connectToDevice();
+    noble.on('discover', async (peripheral) => {
+      if (peripheral.uuid === accessory.context.device.uuid) {
+        await noble.stopScanningAsync();
+        this.peripheral = peripheral;
+        peripheral.disconnectAsync();
       }
     });
   }
 
-  async connectToDevice() {
-    try {
-      await this.device.connect();
-      const service = await this.device.discoverSomeServices([SERVICE_UUID]);
-      this.characteristic = await service[0].discoverCharacteristics([CHARACTERISTIC_WRITE_UUID]);
-    } catch (error) {
-      this.log('Error connecting to BLE device:', error);
+  async connectAndGetWriteCharacteristics() {
+    if (!this.peripheral) {
+      await noble.startScanningAsync();
+      return;
+    }
+    await this.peripheral.connectAsync();
+    this.connected = true;
+    const { characteristics } =
+      await this.peripheral.discoverSomeServicesAndCharacteristicsAsync(
+        ['EEA0'],
+        ['EE01'],
+      );
+    this.characteristic = characteristics[0];
+    this.platform.log.debug('GetWriteCharacteristics OK!');
+  }
+
+  async debounceDisconnect() {
+    clearTimeout(this.disconnectTimer);
+    this.disconnectTimer = setTimeout(async () => {
+      if (this.peripheral && this.connected) {
+        await this.peripheral.disconnectAsync();
+        this.connected = false;
+        this.platform.log.debug('Disconnected.');
+      }
+    }, 10000);
+  }
+
+async setOn(value: CharacteristicValue) {
+  if (!this.connected) {
+    await this.connectAndGetWriteCharacteristics();
+  }
+  if (!this.characteristic) {
+    return;
+  }
+
+  if (this.states.On !== value) {
+    // Use your actual ON/OFF command strings here
+    const data = Buffer.from(
+      value ? '5BF000B5' : '5B0F00B5',  // Use your specific on/off commands
+      'hex',
+    );
+    this.characteristic?.write(data, true, (e) => {
+      if (e) {
+        this.platform.log.error(e);
+      }
+      this.states.On = value as boolean;
+      this.debounceDisconnect();
+    });
+  }
+
+  this.platform.log.debug('Set Characteristic On ->', value);
+}
+
+async setRGB() {
+  if (!this.characteristic) {
+    return;
+  }
+  const rgb = hsvToRgb(
+    this.states.Hue,
+    this.states.Saturation,
+    this.states.Brightness,
+  );
+
+  const r = ('0' + rgb[0]?.toString(16)).slice(-2);
+  const g = ('0' + rgb[1]?.toString(16)).slice(-2);
+  const b = ('0' + rgb[2]?.toString(16)).slice(-2);
+  const brightness = (
+    '0' + Math.round((this.states.Brightness / 100) * 255).toString(16)
+  ).slice(-2);
+
+  // Use the proper command format for RGB control
+  const data = Buffer.from(`69960502${r}${g}${b}${brightness}`, 'hex');
+
+  this.characteristic?.write(data, true, (e) => {
+    if (e) {
+      this.platform.log.error(e);
+    }
+    this.debounceDisconnect();
+  });
+}
+
+  // TODO: Check bluetooth status and report it here
+  async getOn(): Promise<CharacteristicValue> {
+    const isOn = this.states.On;
+    if (!this.characteristic) {
+      await this.connectAndGetWriteCharacteristics();
+      throw new this.platform.api.hap.HapStatusError(
+        this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE,
+      );
+    } else {
+      this.platform.log.debug('Get Characteristic On ->', isOn);
+      this.debounceDisconnect();
+      return isOn;
     }
   }
 
-  async sendCommand(command) {
-    if (this.device && this.characteristic) {
-      const byteCommand = new Uint8Array(Buffer.from(command, 'hex'));
-      await this.characteristic[0].write(byteCommand, true);
-      this.log(`Sent command: ${command}`);
+  async setBrightness(value: CharacteristicValue) {
+    if (!this.connected) {
+      await this.connectAndGetWriteCharacteristics();
     }
+    this.states.Brightness = value as number;
+    this.setRGB();
+    this.platform.log.debug('Set Characteristic Brightness -> ', value);
   }
 
-  setPowerState(value, callback) {
-    this.powerState = value;
-    const command = this.powerState ? LIGHTS_ON_STRING : LIGHTS_OFF_STRING;
-    this.sendCommand(command)
-      .then(() => callback())
-      .catch((err) => {
-        this.log('Error setting power state:', err);
-        callback(err);
-      });
+  async setHue(value: CharacteristicValue) {
+    if (!this.connected) {
+      await this.connectAndGetWriteCharacteristics();
+    }
+    this.states.Hue = value as number;
+    this.setRGB();
+    this.platform.log.debug('Set Characteristic Hue -> ', value);
   }
 
-  setBrightness(value, callback) {
-    this.brightness = value;
-    const command = this.getColorCommand(255, 255, 255, this.brightness);
-    this.sendCommand(command)
-      .then(() => callback())
-      .catch((err) => {
-        this.log('Error setting brightness:', err);
-        callback(err);
-      });
+  async setSaturation(value: CharacteristicValue) {
+    if (!this.connected) {
+      await this.connectAndGetWriteCharacteristics();
+    }
+    this.states.Saturation = value as number;
+    this.setRGB();
+    this.platform.log.debug('Set Characteristic Saturation -> ', value);
   }
 
-  setColor(value, callback) {
-    // This is where you would handle RGB or hue adjustments
-    const command = this.getColorCommand(255, 0, 0, this.brightness); // Example: Red color
-    this.sendCommand(command)
-      .then(() => callback())
-      .catch((err) => {
-        this.log('Error setting color:', err);
-        callback(err);
-      });
-  }
+  async setRGB() {
+    if (!this.characteristic) {
+      return;
+    }
+    const rgb = hsvToRgb(
+      this.states.Hue,
+      this.states.Saturation,
+      this.states.Brightness,
+    );
 
-  getColorCommand(red, green, blue, brightness) {
-    return `5A0001${this.toHex(red)}${this.toHex(green)}${this.toHex(blue)}00${this.toHex(brightness)}00A5`;
-  }
+    const r = ('0' + rgb[0]?.toString(16)).slice(-2);
+    const g = ('0' + rgb[1]?.toString(16)).slice(-2);
+    const b = ('0' + rgb[2]?.toString(16)).slice(-2);
+    const brightness = (
+      '0' + Math.round((this.states.Brightness / 100) * 255).toString(16)
+    ).slice(-2);
 
-  toHex(value) {
-    return value.toString(16).padStart(2, '0').toUpperCase();
-  }
+    const data = Buffer.from(`69960502${r}${g}${b}${brightness}`, 'hex');
 
-  getServices() {
-    return [this.service];
+    this.characteristic?.write(data, true, (e) => {
+      if (e) {
+        this.platform.log.error(e);
+      }
+      this.debounceDisconnect();
+    });
   }
 }
