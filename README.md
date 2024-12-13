@@ -16,12 +16,12 @@ Please note that the color shown on the Home.app will not always accurate to the
 If your LED strips use the Keepsmile app to control, it should be compatible. Although as of now I am unable to make the code work to do automatic discovery and inputing the UUID directly into the plugin is also not working.
 
 
-##Reddit thread documenting my journey with this plugin
+## Reddit thread documenting my journey with this plugin
 
 [ISO a Tenmiro or Keepsmile plugin for LED Light Strips](https://www.reddit.com/r/homebridge/comments/1haib6n/iso_a_tenmiro_or_keepsmile_plugin_for_led_light/)
 
 
-##Credits to @Sorae42 & @jtaft
+## Credits to @Sorae42 & @jtaft
 
 [Sorae42's Github](https://github.com/sorae42)
 [Sorae42's Homebridge MohuanLED BLE Plug-in](https://github.com/sorae42/homebridge-mohuan-ble)
