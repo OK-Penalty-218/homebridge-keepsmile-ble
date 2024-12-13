@@ -3,19 +3,47 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { ExampleHomebridgePlatform } from './platform.js';
 import noble, { Characteristic, Peripheral } from '@abandonware/noble';
 import { hsvToRgb } from './util.js';
+import { PlatformAccessory, Service, Characteristic } from 'homebridge';
+import { ExampleHomebridgePlatform } from './platform';  // Import your platform class
 
-/**
- * Platform Accessory
- * An instance of this class is created for each accessory your platform registers
- * Each accessory may expose multiple services of different service types.
- */
+// This class defines the accessory (in your case, a Bluetooth LED light)
 export class ExamplePlatformAccessory {
-  private service: Service;
+  private lightbulbService: Service;
+  private currentState: boolean = false;
 
-  /**
-   * These are just used to create a working example
-   * You should implement your own code to track the state of your accessory
-   */
+  constructor(
+    private readonly platform: ExampleHomebridgePlatform,
+    private readonly accessory: PlatformAccessory
+  ) {
+    this.accessory.displayName = accessory.context.device.name;
+
+    this.lightbulbService = this.accessory.getService(Service.Lightbulb)
+      || this.accessory.addService(Service.Lightbulb);
+
+    this.lightbulbService.getCharacteristic(Characteristic.On)
+      .on('get', this.getOnState.bind(this))
+      .on('set', this.setOnState.bind(this));
+
+    this.accessory.on('identify', this.identify.bind(this));
+  }
+
+  private getOnState(callback: CharacteristicGetCallback) {
+    this.platform.log.debug('Getting current state of the light: ', this.currentState ? 'ON' : 'OFF');
+    callback(null, this.currentState); // return the current state (on/off)
+  }
+
+  private async setOnState(value: boolean, callback: CharacteristicSetCallback) {
+    this.platform.log.debug('Setting light state to: ', value ? 'ON' : 'OFF');
+    this.currentState = value;
+    // Your code to interact with Bluetooth LED goes here...
+    callback();
+  }
+
+  private identify(callback: () => void) {
+    this.platform.log.info('Identifying light: ', this.accessory.displayName);
+    callback();
+  }
+}
   private states = {
     // state
     On: false,
