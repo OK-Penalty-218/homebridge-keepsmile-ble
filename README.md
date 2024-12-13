@@ -21,7 +21,7 @@ If your LED strips use the Keepsmile app to control, it should be compatible. Al
 [ISO a Tenmiro or Keepsmile plugin for LED Light Strips](https://www.reddit.com/r/homebridge/comments/1haib6n/iso_a_tenmiro_or_keepsmile_plugin_for_led_light/)
 
 
-## Credits to @Sorae42 & @jtaft
+### Credits to @Sorae42 & @jtaft
 
 [Sorae42's Github](https://github.com/sorae42)
 
