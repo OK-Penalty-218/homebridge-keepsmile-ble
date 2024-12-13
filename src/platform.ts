@@ -7,7 +7,7 @@ import {
   Service,
   Characteristic,
 } from 'homebridge';
-import noble from '@abandonware/noble';
+import noble, { Peripheral } from '@abandonware/noble';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import { ExamplePlatformAccessory } from './platformAccessory.js';
 
@@ -46,15 +46,18 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
   }
 
 discoverDevices() {
-  noble.on('stateChange', async (state) => {
-    if (state === 'poweredOn') {
-      await noble.startScanningAsync([], false);  // Scan for all BLE devices
-    }
-  });
+noble.on('stateChange', async (state) => {
+  if (state === 'poweredOn') {
+    await noble.startScanningAsync([], false);  // Scan for all BLE devices
+  } else if (state === 'poweredOff') {
+    this.log.warn('Bluetooth is powered off, cannot scan for devices.');
+    noble.stopScanning();
+  }
+});
 
   noble.on('discover', async (peripheral) => {
     // Optional: You can add filters based on advertisement data, if needed
-    // if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes("KS03")) {
+    if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes("KS03")) {
     
     this.log.debug(`Discovered peripheral: ${peripheral.advertisement.localName} - ${peripheral.uuid}`);
 
@@ -113,7 +116,7 @@ async connectAndInteractWithDevice(peripheral: Peripheral) {
   }
 
   // Disconnect after interaction
-  await peripheral.disconnectAsync();
+    await peripheral.disconnectAsync();
 }
 
     this.platform.log.debug('GetWriteCharacteristics OK!');
