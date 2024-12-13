@@ -11,11 +11,11 @@ import noble from '@abandonware/noble';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import { ExamplePlatformAccessory } from './platformAccessory.js';
 
-/**
- * HomebridgePlatform
- * This class is the main constructor for your plugin, this is where you should
- * parse the user config and discover/register accessories with Homebridge.
- */
+const SERVICE_UUID = "0000afd0-0000-1000-8000-00805f9b34fb";  // LED light strip service UUID
+const CHARACTERISTIC_READ_UUID = "0000afd3-0000-1000-8000-00805f9b34fb"; // Read characteristic
+const CHARACTERISTIC_WRITE_UUID = "0000afd1-0000-1000-8000-00805f9b34fb"; // Write characteristic
+const CHARACTERISTIC_NOTIFY_UUID = "0000afd2-0000-1000-8000-00805f9b34fb"; // Notify characteristic
+
 export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
@@ -34,21 +34,12 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
 
     this.log.debug('Finished initializing platform:', this.config.name);
 
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });
   }
 
-  /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to set up event handlers for characteristics and update respective values.
-   */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
     this.accessories.push(accessory);
@@ -58,74 +49,69 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
     noble.on('stateChange', async (state) => {
       if (state === 'poweredOn') {
         await noble.startScanningAsync([], false);
+        this.log.info('Started scanning for Bluetooth devices...');
       }
     });
 
-    // TODO: Multiple devices support.
     noble.on('discover', async (peripheral) => {
-      if (this.connected) {
-        return;
-      }
+      this.log.debug(`Discovered peripheral: ${peripheral.advertisement.localName} UUID: ${peripheral.uuid}`);
+      this.log.debug('Advertisement:', peripheral.advertisement);
 
-      this.log.debug(
-        `name:${peripheral.advertisement.localName} uuid:${peripheral.uuid}`,
-      );
-
+      // Check if the peripheral matches the UUID from config
       if (peripheral.uuid === this.config['bluetoothuuid']) {
         await noble.stopScanningAsync();
-        this.log.success(
-          `Connection OK! ${peripheral.advertisement.localName} ${peripheral.uuid}`,
-        );
+        this.log.success(`Found target device: ${peripheral.advertisement.localName} with UUID: ${peripheral.uuid}`);
 
-        const uuid = this.api.hap.uuid.generate(
-          peripheral?.advertisement.localName || 'MOHUANLED404',
-        );
-        const existingAccessory = this.accessories.find(
-          (accessory) => accessory.UUID === uuid,
-        );
+        const uuid = this.api.hap.uuid.generate(peripheral.advertisement.localName || 'MOHUANLED404');
+        const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
 
         if (existingAccessory) {
-          this.log.info(
-            'Restoring existing accessory from cache:',
-            existingAccessory.displayName,
-          );
-
+          this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
           new ExamplePlatformAccessory(this, existingAccessory);
         } else {
-          this.log.info('Cleaning up existing accessory...');
-          this.accessories.forEach((accessory) => {
-            this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
-              accessory,
-            ]);
-          });
-
-          this.log.info(
-            'Setting up new accessory:',
-            peripheral?.advertisement.localName,
-          );
-
-          const accessory = new this.api.platformAccessory(
-            peripheral?.advertisement.localName || 'Light Strip',
-            uuid,
-          );
+          this.log.info('Setting up new accessory:', peripheral.advertisement.localName);
+          const accessory = new this.api.platformAccessory(peripheral.advertisement.localName || 'Light Strip', uuid);
 
           accessory.context.device = {
             hkid: uuid,
             uuid: peripheral.uuid,
-            name: peripheral?.advertisement.localName,
+            name: peripheral.advertisement.localName,
           };
 
           new ExamplePlatformAccessory(this, accessory);
+          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
 
-          this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
-            accessory,
-          ]);
-
-          this.log.debug('Registration OK!');
+          this.log.debug('Accessory registration successful!');
         }
+
         this.connected = true;
-        peripheral.disconnectAsync();
+        await peripheral.disconnectAsync();
       }
     });
+  }
+
+  async connectAndGetWriteCharacteristics() {
+    if (!this.peripheral) {
+      await noble.startScanningAsync();
+      return;
+    }
+    await this.peripheral.connectAsync();
+    this.connected = true;
+    const { characteristics } =
+      await this.peripheral.discoverSomeServicesAndCharacteristicsAsync(
+        [SERVICE_UUID], // Use the defined service UUID
+        [CHARACTERISTIC_READ_UUID, CHARACTERISTIC_WRITE_UUID, CHARACTERISTIC_NOTIFY_UUID] // Characteristics for read, write, and notify
+      );
+      
+    this.characteristic = characteristics.find(
+      (characteristic) => characteristic.uuid === CHARACTERISTIC_WRITE_UUID
+    );
+
+    if (!this.characteristic) {
+      this.platform.log.error('Could not find the write characteristic!');
+      return;
+    }
+
+    this.platform.log.debug('GetWriteCharacteristics OK!');
   }
 }
