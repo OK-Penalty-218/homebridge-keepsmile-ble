@@ -24,6 +24,9 @@ If your LED strips use the Keepsmile app to control, it should be compatible. Al
 ## Credits to @Sorae42 & @jtaft
 
 [Sorae42's Github](https://github.com/sorae42)
+
 [Sorae42's Homebridge MohuanLED BLE Plug-in](https://github.com/sorae42/homebridge-mohuan-ble)
+
 [jtaft's Github](https://github.com/jtaft)
+
 [jtaft's Bluetooth Keepsmile Lights Web-Based Controller](https://github.com/jtaft/bluetooth-keepsmile-lights)
