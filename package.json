@@ -1,16 +1,16 @@
 {
-  "displayName": "Homebridge MohuanLED BLE",
-  "name": "@sorae42/homebridge-mohuan-ble",
+  "displayName": "Homebridge Keepsmile BLE",
+  "name": "@OK-Penalty-218/homebridge-mohuan-ble",
   "version": "1.0.2",
-  "description": "Homebridge plugin for MohuanLED app.",
+  "description": "Homebridge plugin for Keepsmile app.",
   "license": "Apache-2.0",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sorae42/homebridge-mohuan-ble.git"
+    "url": "git+https://github.com/OK-Penalty-218/homebridge-keepsmile-ble.git"
   },
   "bugs": {
-    "url": "https://github.com/sorae42/homebridge-mohuan-ble/issues"
+    "url": "https://github.com/OK-Penalty-218/homebridge-Keepsmile-ble/issues"
   },
   "engines": {
     "node": "^18.20.4 || 20.9.0 || ^20.16.0 || ^22.5.1",
