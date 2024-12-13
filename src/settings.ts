@@ -6,4 +6,4 @@ export const PLATFORM_NAME = 'Homebridge Keepsmile BLE';
 /**
  * This must match the name of your plugin as defined the package.json
  */
-export const PLUGIN_NAME = '@OK-Penalty-218/homebridge-keepsmile-ble';
+export const PLUGIN_NAME = '@ok-penalty-218/homebridge-keepsmile-ble';
