@@ -1,6 +1,6 @@
 {
   "displayName": "Homebridge Keepsmile BLE",
-  "name": "@OK-Penalty-218/homebridge-mohuan-ble",
+  "name": "@OK-Penalty-218/homebridge-keepsmile-ble",
   "version": "1.0.2",
   "description": "Homebridge plugin for Keepsmile app.",
   "license": "Apache-2.0",
