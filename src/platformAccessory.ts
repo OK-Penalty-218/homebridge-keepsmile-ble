@@ -84,12 +84,11 @@ export class ExamplePlatformAccessory {
       .getCharacteristic(this.platform.Characteristic.Saturation)
       .onSet(this.setSaturation.bind(this));
 
-    // Re-Setup bluetooth
-    noble.on('stateChange', async (state) => {
-      if (state === 'poweredOn') {
-        await noble.startScanningAsync([], false);
-      }
-    });
+noble.on('stateChange', async (state) => {
+  if (state === 'poweredOn') {
+    await noble.startScanningAsync([], false);  // Ensure it's scanning for all devices
+  }
+});
 
     noble.on('discover', async (peripheral) => {
       if (peripheral.uuid === accessory.context.device.uuid) {
