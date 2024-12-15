@@ -1,4 +1,6 @@
-// Remove unused variables
+import { API, DynamicPlatformPlugin, PlatformAccessory, Service, Characteristic, Logging, PlatformConfig } from 'homebridge';
+import { PLATFORM_NAME } from './settings';
+import { ExampleHomebridgePlatform } from './platform';// Remove unused variables
 // const CHARACTERISTIC_READ_UUID = "0000afd3-0000-1000-8000-00805f9b34fb"; 
 // const CHARACTERISTIC_NOTIFY_UUID = "0000afd2-0000-1000-8000-00805f9b34fb"; 
 
