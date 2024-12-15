@@ -6,7 +6,7 @@ Currently in beta testing as I'm developing this based on a fork from @sorae42's
 
 I have also been implementing code from @jtafts webbrowser based controller for lights controlled by the keepsmile app.
 
-Something else of note is that I am trying to find a way to code automatic discovery of the bluetooth light strips in the same way that the Keepsmile app connects to the lights so that you do not need a bluetooth intercepter app to find the UUID of your lights.
+If anyone knows the login website for the keepsmile app then that is one of the last things I need before I can begin testing. I figure since the app has you make a login and saves the configuration of how you name your lights then coding this plugin to have you login will allow homebridge to automatically see your lights without needing the UUID.
 
 Please note that the color shown on the Home.app will not always accurate to the LED strip. Blame your Chinese manufacturer for that. (or send an PR if you figured out the accuracy!)
 
