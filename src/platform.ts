@@ -1,8 +1,7 @@
 import { API, DynamicPlatformPlugin, PlatformAccessory, Service, Characteristic, Logging, PlatformConfig } from 'homebridge';
-import { PLATFORM_NAME } from './settings';
-import { ExampleHomebridgePlatform } from './platform';// Remove unused variables
-// const CHARACTERISTIC_READ_UUID = "0000afd3-0000-1000-8000-00805f9b34fb"; 
-// const CHARACTERISTIC_NOTIFY_UUID = "0000afd2-0000-1000-8000-00805f9b34fb"; 
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
+import { ExamplePlatformAccessory } from './platformAccessory';
+import * as noble from 'noble';
 
 // Use single quotes for strings
 const SERVICE_UUID = '0000afd0-0000-1000-8000-00805f9b34fb';  // LED light strip service UUID
@@ -39,7 +38,6 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  // Remove trailing spaces
   discoverDevices() {
     noble.on('stateChange', async (state) => {
       if (state === 'poweredOn') {
