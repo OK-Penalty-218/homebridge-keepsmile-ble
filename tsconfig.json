@@ -1,9 +1,31 @@
 {
   "compilerOptions": {
-    "typeRoots": [
-      "node_modules/@types",
-      "node_modules/homebridge"
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "lib": [
+      "DOM",
+      "ES2022"
     ],
-    "types": ["homebridge"]
-  }
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022",
+    "typeRoots": [
+      "node_modules/@types",   // Make sure this is present
+      "node_modules/homebridge" // Add this if it's missing
+    ],
+    "types": [
+      "homebridge"  // Ensure that homebridge is listed here
+    ]
+  },
+  "include": [
+    "eslint.config.mjs",
+    "homebridge-ui",
+    "src"
+  ]
 }
