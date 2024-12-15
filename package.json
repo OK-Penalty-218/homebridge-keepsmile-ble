@@ -20,7 +20,6 @@
     "axios": "^1.3.3",
     "noble": "^1.9.2",
     "homebridge": "^1.6.0",
-    "homebridge-plugin-helpers": "^2.1.0"
   },
   "devDependencies": {
     "typescript": "^5.0.4",
