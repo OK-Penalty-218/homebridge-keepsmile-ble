@@ -1,21 +1,9 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "declaration": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "lib": [
-      "ES2022"
+    "typeRoots": [
+      "node_modules/@types",
+      "node_modules/homebridge"
     ],
-    "module": "ES2022",
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "strict": true,
-    "target": "ES2022"
-  },
-  "include": [
-    "src"
-  ]
+    "types": ["homebridge"]
+  }
 }
