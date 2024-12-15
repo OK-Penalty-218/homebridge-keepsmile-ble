@@ -1,10 +1,6 @@
-// Use single quotes for strings
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory, Characteristic } from 'homebridge'; // Import types from homebridge
 import { ExampleHomebridgePlatform } from './platform.js';
-import noble, { Characteristic, Peripheral } from '@abandonware/noble';
-import { hsvToRgb } from './util.js';
 
-// Remove trailing spaces
 export class ExamplePlatformAccessory {
   private lightbulbService: Service;
   private currentState: boolean = false;
@@ -15,9 +11,11 @@ export class ExamplePlatformAccessory {
   ) {
     this.accessory.displayName = accessory.context.device.name;
 
+    // Use Service and Characteristic from API.hap
     this.lightbulbService = this.accessory.getService(Service.Lightbulb)
       || this.accessory.addService(Service.Lightbulb);
 
+    // Make sure Characteristic.On is used correctly
     this.lightbulbService.getCharacteristic(Characteristic.On)
       .on('get', this.getOnState.bind(this))
       .on('set', this.setOnState.bind(this));
