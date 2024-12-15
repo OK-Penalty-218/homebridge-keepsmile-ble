@@ -1,95 +1,43 @@
-import { API, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-import { ExamplePlatformAccessory } from './platformAccessory.js';
-import axios from 'axios'; // Assuming you're using axios to interact with Keepsmile API
+// Use single quotes for strings
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { ExampleHomebridgePlatform } from './platform.js';
+import noble, { Characteristic, Peripheral } from '@abandonware/noble';
+import { hsvToRgb } from './util.js';
 
-export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
-  public readonly Service: typeof Service;
-  public readonly Characteristic: typeof Characteristic;
-
-  public readonly accessories: PlatformAccessory[] = [];
-  private keepsmileToken?: string; // Store the token for future API requests
+// Remove trailing spaces
+export class ExamplePlatformAccessory {
+  private lightbulbService: Service;
+  private currentState: boolean = false;
 
   constructor(
-    public readonly log: Logging,
-    public readonly config: PlatformConfig,
-    public readonly api: API,
+    private readonly platform: ExampleHomebridgePlatform,
+    private readonly accessory: PlatformAccessory
   ) {
-    this.Service = api.hap.Service;
-    this.Characteristic = api.hap.Characteristic;
+    this.accessory.displayName = accessory.context.device.name;
 
-    this.log.debug('Finished initializing platform:', this.config.name);
+    this.lightbulbService = this.accessory.getService(Service.Lightbulb)
+      || this.accessory.addService(Service.Lightbulb);
 
-    this.api.on('didFinishLaunching', async () => {
-      log.debug('Executed didFinishLaunching callback');
-      await this.authenticateKeepsmile();
-      this.loadConfiguredAccessories(); // Load devices manually after successful login
-    });
+    this.lightbulbService.getCharacteristic(Characteristic.On)
+      .on('get', this.getOnState.bind(this))
+      .on('set', this.setOnState.bind(this));
+
+    this.accessory.on('identify', this.identify.bind(this));
   }
 
-  /**
-   * Authenticates with the Keepsmile app using the provided username and password.
-   */
-  async authenticateKeepsmile() {
-    const { username, password } = this.config;
-
-    if (!username || !password) {
-      this.log.error('Keepsmile username and password must be provided in config.json');
-      return;
-    }
-
-    try {
-      // Make an API request to authenticate with Keepsmile (assuming there's an API endpoint)
-      const response = await axios.post('https://api.keepsmile.com/login', {
-        username,
-        password,
-      });
-
-      if (response.data && response.data.token) {
-        this.keepsmileToken = response.data.token;
-        this.log.info('Successfully authenticated with Keepsmile app');
-      } else {
-        this.log.error('Keepsmile authentication failed: no token received');
-      }
-    } catch (error) {
-      this.log.error(`Keepsmile authentication error: ${error.message}`);
-    }
+  private getOnState(callback: CharacteristicGetCallback) {
+    this.platform.log.debug('Getting current state of the light: ', this.currentState ? 'ON' : 'OFF');
+    callback(null, this.currentState); // return the current state (on/off)
   }
 
-  /**
-   * This method loads manually configured accessories from `config.json`.
-   */
-  loadConfiguredAccessories() {
-    const devices = this.config.devices; // Devices are defined in the config
-
-    if (!devices || devices.length === 0) {
-      this.log.warn('No devices configured in config.json');
-      return;
-    }
-
-    devices.forEach((device) => {
-      const uuid = this.api.hap.uuid.generate(device.bluetoothuuid || device.name);
-      const existingAccessory = this.accessories.find(
-        (accessory) => accessory.UUID === uuid
-      );
-
-      if (existingAccessory) {
-        this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName}`);
-        new ExamplePlatformAccessory(this, existingAccessory);
-      } else {
-        this.log.info(`Adding new accessory: ${device.name}`);
-        const accessory = new this.api.platformAccessory(device.name, uuid);
-        accessory.context.device = device; // Store device info in context
-
-        new ExamplePlatformAccessory(this, accessory);
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-        this.log.debug('Accessory added successfully!');
-      }
-    });
+  private async setOnState(value: boolean, callback: CharacteristicSetCallback) {
+    this.platform.log.debug('Setting light state to: ', value ? 'ON' : 'OFF');
+    this.currentState = value;
+    callback();
   }
 
-  configureAccessory(accessory: PlatformAccessory) {
-    this.log.info('Loading accessory from cache:', accessory.displayName);
-    this.accessories.push(accessory);
+  private identify(callback: () => void) {
+    this.platform.log.info('Identifying light: ', this.accessory.displayName);
+    callback();
   }
 }
