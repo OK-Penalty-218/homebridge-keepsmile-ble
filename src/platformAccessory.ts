@@ -1,5 +1,4 @@
-import { Service, PlatformAccessory, Characteristic } from 'homebridge'; // Import types from homebridge
-import { ExampleHomebridgePlatform } from './platform.js';
+import type { Service, Characteristic, CharacteristicGetCallback, CharacteristicSetCallback } from 'homebridge';
 
 export class ExamplePlatformAccessory {
   private lightbulbService: Service;
