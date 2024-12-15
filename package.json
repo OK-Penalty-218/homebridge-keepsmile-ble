@@ -1,8 +1,8 @@
 {
   "displayName": "Homebridge Keepsmile BLE",
   "name": "@ok-penalty-218/homebridge-keepsmile-ble",
-  "version": "0.1.9-beta",
-  "description": "Homebridge plugin for Keepsmile BLE LED lights.",
+  "version": "0.1.7-beta",
+  "description": "Homebridge plugin for Keepsmile app.",
   "license": "Apache-2.0",
   "type": "module",
   "repository": {
@@ -12,7 +12,6 @@
   "bugs": {
     "url": "https://github.com/OK-Penalty-218/homebridge-Keepsmile-ble/issues"
   },
-  "homepage": "https://github.com/OK-Penalty-218/homebridge-keepsmile-ble",  // Add the homepage for better visibility
   "engines": {
     "node": "^18.20.4 || 20.9.0 || ^20.16.0 || ^22.5.1",
     "homebridge": "^1.8.0 || ^2.0.0-beta.0"
@@ -41,6 +40,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@abandonware/noble": "1.9.2-25"
+    "@abandonware/noble": "latest",
+    "axios": "latest"
   }
 }
