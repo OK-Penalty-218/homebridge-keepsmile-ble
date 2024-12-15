@@ -18,7 +18,7 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "lint": "eslint src/**/*.ts --max-warnings=0",
+    "lint": "eslint --fix --ext .js,.jsx .",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
     "prepublishOnly": "npm run lint && npm run build"
@@ -40,7 +40,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@abandonware/noble": "latest",
-    "axios": "latest"
+    "@abandonware/noble": "1.9.2-25",
+    "axios": "^1.7.0"
   }
 }
