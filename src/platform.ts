@@ -1,21 +1,12 @@
-import {
-  API,
-  DynamicPlatformPlugin,
-  Logging,
-  PlatformAccessory,
-  PlatformConfig,
-  Service,
-  Characteristic,
-} from 'homebridge';
-import noble, { Peripheral } from '@abandonware/noble';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
-import { ExamplePlatformAccessory } from './platformAccessory.js';
+// Remove unused variables
+// const CHARACTERISTIC_READ_UUID = "0000afd3-0000-1000-8000-00805f9b34fb"; 
+// const CHARACTERISTIC_NOTIFY_UUID = "0000afd2-0000-1000-8000-00805f9b34fb"; 
 
-// This UUID should be specific to your LED's service and characteristics
-const SERVICE_UUID = "0000afd0-0000-1000-8000-00805f9b34fb";  // LED light strip service UUID
-const CHARACTERISTIC_READ_UUID = "0000afd3-0000-1000-8000-00805f9b34fb"; // Read characteristic
-const CHARACTERISTIC_WRITE_UUID = "0000afd1-0000-1000-8000-00805f9b34fb"; // Write characteristic
-const CHARACTERISTIC_NOTIFY_UUID = "0000afd2-0000-1000-8000-00805f9b34fb"; // Notify characteristic
+// Use single quotes for strings
+const SERVICE_UUID = '0000afd0-0000-1000-8000-00805f9b34fb';  // LED light strip service UUID
+const CHARACTERISTIC_READ_UUID = '0000afd3-0000-1000-8000-00805f9b34fb'; // Read characteristic
+const CHARACTERISTIC_WRITE_UUID = '0000afd1-0000-1000-8000-00805f9b34fb'; // Write characteristic
+const CHARACTERISTIC_NOTIFY_UUID = '0000afd2-0000-1000-8000-00805f9b34fb'; // Notify characteristic
 
 export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
@@ -46,6 +37,7 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
+  // Remove trailing spaces
   discoverDevices() {
     noble.on('stateChange', async (state) => {
       if (state === 'poweredOn') {
@@ -57,10 +49,9 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
     });
 
     noble.on('discover', async (peripheral) => {
-      if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes("KS03")) {
+      if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes('KS03')) {
         this.log.debug(`Discovered peripheral: ${peripheral.advertisement.localName} - ${peripheral.uuid}`);
 
-        // Generate an accessory UUID (using peripheral info to ensure uniqueness)
         const uuid = this.api.hap.uuid.generate(peripheral.uuid);
         const existingAccessory = this.accessories.find(
           (accessory) => accessory.UUID === uuid
@@ -89,32 +80,5 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
         peripheral.disconnectAsync();
       }
     });
-  }
-
-  async connectAndInteractWithDevice(peripheral: Peripheral) {
-    await peripheral.connectAsync();
-    this.log.info(`Connected to device: ${peripheral.advertisement.localName}`);
-
-    // Discover services and characteristics
-    const { characteristics } = await peripheral.discoverSomeServicesAndCharacteristicsAsync(
-      [SERVICE_UUID],  // service UUID
-      [CHARACTERISTIC_WRITE_UUID], // write characteristic UUID
-    );
-
-    const writeCharacteristic = characteristics.find((char) => char.uuid === CHARACTERISTIC_WRITE_UUID);
-
-    if (writeCharacteristic) {
-      this.log.info('Found write characteristic, interacting with device...');
-      
-      // Example: Send a data command (replace with your actual data)
-      const data = Buffer.from('010203040506', 'hex');
-      await writeCharacteristic.writeAsync(data);
-      this.log.info('Sent data to device.');
-    } else {
-      this.log.error('Write characteristic not found.');
-    }
-
-    // Disconnect after interaction
-    await peripheral.disconnectAsync();
   }
 }
