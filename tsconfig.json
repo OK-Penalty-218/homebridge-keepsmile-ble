@@ -15,13 +15,6 @@
     "sourceMap": true,
     "strict": true,
     "target": "ES2022",
-    "typeRoots": [
-      "node_modules/@types",   // Make sure this is present
-      "node_modules/homebridge" // Add this if it's missing
-    ],
-    "types": [
-      "homebridge"  // Ensure that homebridge is listed here
-    ]
   },
   "include": [
     "eslint.config.mjs",
