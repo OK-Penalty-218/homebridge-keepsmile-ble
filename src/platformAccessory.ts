@@ -1,112 +1,65 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import { ExampleHomebridgePlatform } from './platform.js';
-import noble, { Peripheral, Characteristic } from '@abandonware/noble';
-import { hsvToRgb } from './util.js';
+import { API, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+import { ExamplePlatformAccessory } from './platformAccessory.js';
 
-// This class defines the accessory (in your case, a Bluetooth LED light)
-export class ExamplePlatformAccessory {
-  private lightbulbService: Service;
-  private currentState: boolean = false;
-  private states = {
-    On: false,
-    Brightness: 100,
-    Hue: 0,
-    Saturation: 0,
-  };
+export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
 
-  private peripheral?: Peripheral;
-  private characteristic?: Characteristic;
-  private connected: boolean = false;
-  private disconnectTimer?: NodeJS.Timeout;
+  public readonly accessories: PlatformAccessory[] = [];
 
   constructor(
-    private readonly platform: ExampleHomebridgePlatform,
-    private readonly accessory: PlatformAccessory
+    public readonly log: Logging,
+    public readonly config: PlatformConfig,
+    public readonly api: API,
   ) {
-    this.accessory.displayName = accessory.context.device.name;
+    this.Service = api.hap.Service;
+    this.Characteristic = api.hap.Characteristic;
 
-    // Get or create the Lightbulb service
-    this.lightbulbService = this.accessory.getService(Service.Lightbulb)
-      || this.accessory.addService(Service.Lightbulb);
+    this.log.debug('Finished initializing platform:', this.config.name);
 
-    // Register the "On" characteristic
-    this.lightbulbService.getCharacteristic(Characteristic.On)
-      .on('get', this.getOnState.bind(this))
-      .on('set', this.setOnState.bind(this));
-
-    // Register the "Brightness", "Hue", and "Saturation" characteristics
-    this.lightbulbService.getCharacteristic(Characteristic.Brightness)
-      .on('set', this.setBrightness.bind(this));
-
-    this.lightbulbService.getCharacteristic(Characteristic.Hue)
-      .on('set', this.setHue.bind(this));
-
-    this.lightbulbService.getCharacteristic(Characteristic.Saturation)
-      .on('set', this.setSaturation.bind(this));
-
-    // Identify the accessory (for Home app)
-    this.accessory.on('identify', this.identify.bind(this));
-  }
-
-  private getOnState(callback: CharacteristicGetCallback) {
-    this.platform.log.debug('Getting current state of the light: ', this.states.On ? 'ON' : 'OFF');
-    callback(null, this.states.On);
-  }
-
-  private async setOnState(value: boolean, callback: CharacteristicSetCallback) {
-    this.platform.log.debug('Setting light state to: ', value ? 'ON' : 'OFF');
-    this.states.On = value;
-    await this.sendCommandToDevice(value ? '5BF000B5' : '5B0F00B5');  // Use correct on/off command
-    callback();
-  }
-
-  private async setBrightness(value: CharacteristicValue) {
-    this.states.Brightness = value as number;
-    await this.setRGB();
-    this.platform.log.debug('Set Characteristic Brightness -> ', value);
-  }
-
-  private async setHue(value: CharacteristicValue) {
-    this.states.Hue = value as number;
-    await this.setRGB();
-    this.platform.log.debug('Set Characteristic Hue -> ', value);
-  }
-
-  private async setSaturation(value: CharacteristicValue) {
-    this.states.Saturation = value as number;
-    await this.setRGB();
-    this.platform.log.debug('Set Characteristic Saturation -> ', value);
-  }
-
-  private async setRGB() {
-    if (!this.characteristic) return;
-
-    const rgb = hsvToRgb(this.states.Hue, this.states.Saturation, this.states.Brightness);
-    const r = ('0' + rgb[0]?.toString(16)).slice(-2);
-    const g = ('0' + rgb[1]?.toString(16)).slice(-2);
-    const b = ('0' + rgb[2]?.toString(16)).slice(-2);
-    const brightness = ('0' + Math.round((this.states.Brightness / 100) * 255).toString(16)).slice(-2);
-
-    const data = Buffer.from(`69960502${r}${g}${b}${brightness}`, 'hex');
-    await this.sendCommandToDevice(data);
-  }
-
-  private async sendCommandToDevice(command: string | Buffer) {
-    if (!this.characteristic) return;
-    await this.characteristic.write(command, true, (err) => {
-      if (err) {
-        this.platform.log.error('Error writing to device:', err);
-      }
-      this.debounceDisconnect();
+    // Do not call discoverDevices, now it's a manual configuration process.
+    this.api.on('didFinishLaunching', () => {
+      log.debug('Executed didFinishLaunching callback');
+      this.loadConfiguredAccessories(); // Manually load configured accessories
     });
   }
 
-  private debounceDisconnect() {
-    clearTimeout(this.disconnectTimer);
-    this.disconnectTimer = setTimeout(async () => {
-      if (this.peripheral && this.connected) {
-        await this.peripheral.disconnectAsync();
-        this.connected = false;
-        this.platform.log.debug('Disconnected from device.');
+  /**
+   * This method loads manually configured accessories from `config.json`.
+   */
+  loadConfiguredAccessories() {
+    const devices = this.config.devices; // Assuming you have a `devices` field in your config
+
+    if (!devices || devices.length === 0) {
+      this.log.warn('No devices configured in config.json');
+      return;
+    }
+
+    devices.forEach((device) => {
+      const uuid = this.api.hap.uuid.generate(device.bluetoothuuid || device.name);
+      const existingAccessory = this.accessories.find(
+        (accessory) => accessory.UUID === uuid
+      );
+
+      if (existingAccessory) {
+        this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName}`);
+        new ExamplePlatformAccessory(this, existingAccessory);
+      } else {
+        this.log.info(`Adding new accessory: ${device.name}`);
+        const accessory = new this.api.platformAccessory(device.name, uuid);
+        accessory.context.device = device; // Store device information in the context
+
+        new ExamplePlatformAccessory(this, accessory);
+        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        this.log.debug('Accessory added successfully!');
       }
-    }, 10000);  // Wait 10 seconds before disconnecting
+    });
+  }
+
+  configureAccessory(accessory: PlatformAccessory) {
+    this.log.info('Loading accessory from cache:', accessory.displayName);
+    this.accessories.push(accessory);
+  }
+}
+
