@@ -1,24 +1,28 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "declaration": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "lib": [
-      "DOM",
-      "ES2022"
-    ],
-    "module": "ES2022",
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "strict": true,
-    "target": "ES2022",
+    "target": "ES2022",                         // Modern ECMAScript target for better performance and features
+    "module": "ES2022",                         // Using ES2022 modules for better compatibility
+    "lib": ["DOM", "ES2022"],                    // Add DOM for browser-specific features and ES2022 for modern JS features
+    "moduleResolution": "node",                 // Use Node.js-style module resolution
+    "outDir": "./dist",                         // Output directory for compiled JavaScript
+    "rootDir": "./src",                         // Root directory for TypeScript files
+    "esModuleInterop": true,                    // Enable default imports compatibility
+    "strict": true,                             // Enable strict type checking options
+    "declaration": true,                        // Generate .d.ts declaration files
+    "sourceMap": true,                          // Generate source maps for debugging
+    "allowSyntheticDefaultImports": true,       // Allow default imports from modules that don't have a default export
+    "forceConsistentCasingInFileNames": true,   // Ensure consistent file name casing
+    "types": ["node", "homebridge"],            // Include types for Node.js and Homebridge
+    "skipLibCheck": true,                       // Skip type checking of declaration files for faster builds
+    "resolveJsonModule": true                   // Allow importing of JSON modules
   },
   "include": [
-    "eslint.config.mjs",
-    "homebridge-ui",
-    "src"
+    "src/**/*",                                 // Include all TypeScript files in the 'src' folder
+    "eslint.config.mjs",                        // If you have an ESLint config file
+    "homebridge-ui"                             // Include Homebridge UI files if relevant
+  ],
+  "exclude": [
+    "node_modules",                             // Exclude node_modules from being compiled
+    "dist"                                      // Exclude dist folder to avoid recursive compilation
   ]
 }
