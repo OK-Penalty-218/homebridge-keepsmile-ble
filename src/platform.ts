@@ -1,20 +1,12 @@
-import { API, DynamicPlatformPlugin, PlatformAccessory, Service, Characteristic, Logging, PlatformConfig } from 'homebridge';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
-import { ExamplePlatformAccessory } from './platformAccessory';
-import * as noble from 'noble';
-
-// Use single quotes for strings
-const SERVICE_UUID = '0000afd0-0000-1000-8000-00805f9b34fb';  // LED light strip service UUID
-const CHARACTERISTIC_READ_UUID = '0000afd3-0000-1000-8000-00805f9b34fb'; // Read characteristic
-const CHARACTERISTIC_WRITE_UUID = '0000afd1-0000-1000-8000-00805f9b34fb'; // Write characteristic
-const CHARACTERISTIC_NOTIFY_UUID = '0000afd2-0000-1000-8000-00805f9b34fb'; // Notify characteristic
+import noble from 'noble';  // Import noble correctly
+import { API, DynamicPlatformPlugin, PlatformAccessory, Logging, PlatformConfig, Service, Characteristic } from 'homebridge';
+import { PLATFORM_NAME } from './settings';
+import { ExamplePlatformAccessory } from './platformAccessory'; // Assuming you have a platformAccessory file
 
 export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service;
   public readonly Characteristic: typeof Characteristic;
-
   public readonly accessories: PlatformAccessory[] = [];
-
   private connected: boolean = false;
 
   constructor(
@@ -39,7 +31,7 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
   }
 
   discoverDevices() {
-    noble.on('stateChange', async (state) => {
+    noble.on('stateChange', async (state: string) => {  // Explicitly typing 'state' as a string
       if (state === 'poweredOn') {
         await noble.startScanningAsync([], false);  // Scan for all BLE devices
       } else if (state === 'poweredOff') {
@@ -48,7 +40,7 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
       }
     });
 
-    noble.on('discover', async (peripheral) => {
+    noble.on('discover', async (peripheral: any) => {  // Typing 'peripheral' as 'any' for now
       if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes('KS03')) {
         this.log.debug(`Discovered peripheral: ${peripheral.advertisement.localName} - ${peripheral.uuid}`);
 
