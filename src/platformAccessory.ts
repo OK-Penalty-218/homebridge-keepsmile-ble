@@ -1,5 +1,5 @@
-import { Service, Characteristic, CharacteristicGetCallback, CharacteristicSetCallback, PlatformAccessory } from 'homebridge';  // Correct imports
-import { ExampleHomebridgePlatform } from './platform';  // Correct import for the platform class
+import { Service, Characteristic, PlatformAccessory, CharacteristicGetCallback, CharacteristicSetCallback } from 'homebridge';
+import { ExampleHomebridgePlatform } from './platform';
 
 export class ExamplePlatformAccessory {
   private lightbulbService: Service;
@@ -24,21 +24,18 @@ export class ExamplePlatformAccessory {
   }
 
   private getOnState(callback: CharacteristicGetCallback) {
-    // Log the current state of the light (on/off)
     this.platform.log.debug('Getting current state of the light: ', this.currentState ? 'ON' : 'OFF');
-    callback(null, this.currentState); // Return the current state (on/off)
+    callback(null, this.currentState); // return the current state (on/off)
   }
 
   private async setOnState(value: boolean, callback: CharacteristicSetCallback) {
-    // Log when setting the light state
     this.platform.log.debug('Setting light state to: ', value ? 'ON' : 'OFF');
     this.currentState = value;
-    callback();  // Callback to finish the action
+    callback();
   }
 
   private identify(callback: () => void) {
-    // Log when identifying the accessory
     this.platform.log.info('Identifying light: ', this.accessory.displayName);
-    callback();  // Identify callback
+    callback();
   }
 }
