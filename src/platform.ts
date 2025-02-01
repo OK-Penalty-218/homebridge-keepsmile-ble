@@ -1,6 +1,6 @@
-import noble from 'noble';  // Import noble correctly
+import noble, { Peripheral } from 'noble';  // Import noble correctly
 import { API, DynamicPlatformPlugin, PlatformAccessory, Logging, PlatformConfig, Service, Characteristic } from 'homebridge';
-import { PLATFORM_NAME } from './settings';
+import { PLUGIN_NAME, PLATFORM_NAME } from './settings';
 import { ExamplePlatformAccessory } from './platformAccessory'; // Assuming you have a platformAccessory file
 
 export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
@@ -21,8 +21,22 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
 
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      this.discoverDevices();
+      this.startScanning();
     });
+
+    // Handle Bluetooth state on startup
+    if (noble.state === 'poweredOn') {
+      this.startScanning();
+    } else {
+      noble.on('stateChange', (state: string) => {
+        if (state === 'poweredOn') {
+          this.startScanning();
+        } else {
+          this.log.warn('Bluetooth is powered off, cannot scan for devices.');
+          noble.stopScanning();
+        }
+      });
+    }
   }
 
   configureAccessory(accessory: PlatformAccessory) {
@@ -30,38 +44,33 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  discoverDevices() {
-    noble.on('stateChange', async (state: string) => {  // Explicitly typing 'state' as a string
-      if (state === 'poweredOn') {
-        await noble.startScanningAsync([], false);  // Scan for all BLE devices
-      } else if (state === 'poweredOff') {
-        this.log.warn('Bluetooth is powered off, cannot scan for devices.');
-        noble.stopScanning();
-      }
-    });
+  startScanning() {
+    this.log.info('Starting Bluetooth scanning...');
+    noble.startScanning([], false);
 
-    noble.on('discover', async (peripheral: any) => {  // Typing 'peripheral' as 'any' for now
-      if (peripheral.advertisement.localName && peripheral.advertisement.localName.includes('KS03')) {
-        this.log.debug(`Discovered peripheral: ${peripheral.advertisement.localName} - ${peripheral.uuid}`);
+    noble.on('discover', (peripheral: Peripheral) => {
+      const localName = peripheral.advertisement.localName;
+      if (localName && localName.includes('KS03')) {
+        this.log.debug(`Discovered peripheral: ${localName} - ${peripheral.uuid}`);
 
         const uuid = this.api.hap.uuid.generate(peripheral.uuid);
         const existingAccessory = this.accessories.find(
-          (accessory) => accessory.UUID === uuid
+          (accessory) => accessory.UUID === uuid,
         );
 
         if (existingAccessory) {
           this.log.info(`Restoring existing accessory from cache: ${existingAccessory.displayName}`);
           new ExamplePlatformAccessory(this, existingAccessory);
         } else {
-          this.log.info(`Adding new accessory: ${peripheral.advertisement.localName}`);
+          this.log.info(`Adding new accessory: ${localName}`);
           const accessory = new this.api.platformAccessory(
-            peripheral.advertisement.localName || 'BLE Light',
-            uuid
+            localName || 'BLE Light',
+            uuid,
           );
 
           accessory.context.device = {
             uuid: peripheral.uuid,
-            name: peripheral.advertisement.localName,
+            name: localName,
           };
 
           new ExamplePlatformAccessory(this, accessory);
@@ -69,7 +78,7 @@ export class ExampleHomebridgePlatform implements DynamicPlatformPlugin {
           this.log.debug('Accessory added successfully!');
         }
 
-        peripheral.disconnectAsync();
+        peripheral.disconnect();
       }
     });
   }

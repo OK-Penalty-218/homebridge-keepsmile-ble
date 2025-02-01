@@ -21,40 +21,40 @@ export function hsvToRgb(h: number, s: number, v: number = 100) {
   }
   x = C * (1.0 - x);
   switch (Math.floor(h) % 6) {
-    case 0:
-      r = C + m;
-      g = x + m;
-      b = m;
-      break;
-    case 1:
-      r = x + m;
-      g = C + m;
-      b = m;
-      break;
-    case 2:
-      r = m;
-      g = C + m;
-      b = x + m;
-      break;
-    case 3:
-      r = m;
-      g = x + m;
-      b = C + m;
-      break;
-    case 4:
-      r = x + m;
-      g = m;
-      b = C + m;
-      break;
-    case 5:
-      r = C + m;
-      g = m;
-      b = x + m;
-      break;
-    default:
-      r = 255;
-      g = 0;
-      b = 0;
+  case 0:
+    r = C + m;
+    g = x + m;
+    b = m;
+    break;
+  case 1:
+    r = x + m;
+    g = C + m;
+    b = m;
+    break;
+  case 2:
+    r = m;
+    g = C + m;
+    b = x + m;
+    break;
+  case 3:
+    r = m;
+    g = x + m;
+    b = C + m;
+    break;
+  case 4:
+    r = x + m;
+    g = m;
+    b = C + m;
+    break;
+  case 5:
+    r = C + m;
+    g = m;
+    b = x + m;
+    break;
+  default:
+    r = 255;
+    g = 0;
+    b = 0;
   }
 
   return [round(r * 255), round(g * 255), round(b * 255)];

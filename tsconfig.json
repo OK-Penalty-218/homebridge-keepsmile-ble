@@ -1,24 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "lib": ["ESNext"],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
+    "target": "ES2022",
+    "lib": [
+      "DOM",
+      "ES2022"
     ],
-    "types": [
-      "node",
-      "homebridge"
-    ]
+    "rootDir": "src",
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src/**/*.ts"
+    "eslint.config.js",
+    "homebridge-ui",
+    "src"
   ]
 }
